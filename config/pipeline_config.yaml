@@ -1,0 +1,93 @@
+pipeline:
+  project_name: "Privacy Pipeline"
+  version: "1.0.0"
+
+paths:
+  raw_images: "/workspace/data/raw_images"
+  prefiltered: "/workspace/data/prefiltered"
+  selected: "/workspace/data/selected"
+  annotations: "/workspace/data/annotations"
+  training: "/workspace/data/training"
+  output: "/workspace/output"
+  anonymised: "/workspace/output/anonymised"
+
+models:
+  yolo_coco: "yolo11n.pt"
+  yolo_face: "yolov11n-face.pt"
+  yolo_world: "yolov8s-worldv2"
+  grounding_dino:
+    config: "/workspace/GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py"
+    weights: "/workspace/GroundingDINO/weights/groundingdino_swint_ogc.pth"
+
+prefilter:
+  min_brightness: 30
+  max_brightness: 250
+  min_sharpness: 50
+  min_contrast: 25
+  min_edge_density: 0.02
+  image_extensions: [".jpg", ".jpeg", ".png", ".bmp"]
+
+selection:
+  num_samples: 2500
+  min_gap_minutes: 3
+  max_per_hour: 5
+  person_weight: 10.0
+  vehicle_weight: 5.0
+  quality_weight: 1.0
+
+annotation:
+  grounding_dino:
+    prompts:
+      face: "human face . head with helmet"
+      person: "person . worker . human"
+      vehicle: "vehicle . car . truck . excavator . forklift"
+      text_or_logo: "text . sign . logo . company name"
+      construction: "crane . scaffolding . container"
+    thresholds:
+      face: { box: 0.20, text: 0.15 }
+      person: { box: 0.30, text: 0.25 }
+      vehicle: { box: 0.35, text: 0.30 }
+      text_or_logo: { box: 0.25, text: 0.20 }
+      construction: { box: 0.30, text: 0.25 }
+  yolo_face:
+    confidence: 0.20
+    rescue_confidence: 0.08
+  yolo_coco:
+    confidence: 0.25
+  yolo_world:
+    confidence: 0.15
+    prompts: ["text", "sign", "logo", "company name", "license plate"]
+  wbf:
+    iou_threshold: 0.35
+    min_confidence: 0.15
+  sahi:
+    enabled: true
+    slice_size: 1496
+    overlap: 0.15
+  post_fusion:
+    cleanup_iou: 0.50
+  checkpoint_interval: 100
+
+training:
+  model: "yolo11n.pt"
+  epochs: 100
+  imgsz: 640
+  batch: 8
+  device: 0
+  patience: 20
+  val_split: 0.2
+
+anonymisation:
+  blur_method: "gaussian"
+  blur_strength: 51
+  padding_percent: 10
+  tiers:
+    high_confidence:
+      strategy: "face_only"
+    low_confidence:
+      strategy: "face_with_buffer"
+    no_face:
+      strategy: "top_third_of_person"
+      crop_ratio: 0.33
+  classes_to_blur: ["face", "text_or_logo"]
+  classes_to_blur_conditional: ["vehicle"]
