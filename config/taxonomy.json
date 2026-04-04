@@ -1,0 +1,154 @@
+{
+  "classes": [
+    {
+      "id": 0,
+      "name": "face",
+      "privacy_sensitive": true,
+      "color": "#FF0000",
+      "attributes": {
+        "visibility": {
+          "type": "select",
+          "values": ["unspecified", "clear", "partial", "occluded"],
+          "default": "unspecified"
+        },
+        "has_helmet": {
+          "type": "select",
+          "values": ["unspecified", "yes", "no"],
+          "default": "unspecified"
+        }
+      }
+    },
+    {
+      "id": 1,
+      "name": "person",
+      "privacy_sensitive": true,
+      "color": "#00FF00",
+      "attributes": {
+        "action_1": {
+          "type": "select",
+          "values": ["unspecified", "standing", "walking", "crouching", "sitting", "lying", "climbing", "carrying", "hammering", "operating", "pointing"],
+          "default": "unspecified"
+        },
+        "action_2": {
+          "type": "select",
+          "values": ["unspecified", "none", "standing", "walking", "crouching", "sitting", "lying", "climbing", "carrying", "hammering", "operating", "pointing"],
+          "default": "unspecified"
+        },
+        "helmet": {
+          "type": "select",
+          "values": ["unspecified", "yes", "no"],
+          "default": "unspecified"
+        },
+        "vest": {
+          "type": "select",
+          "values": ["unspecified", "yes", "no"],
+          "default": "unspecified"
+        },
+        "face_visible": {
+          "type": "select",
+          "values": ["unspecified", "yes", "partial", "no"],
+          "default": "unspecified"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "name": "vehicle",
+      "privacy_sensitive": true,
+      "color": "#0000FF",
+      "attributes": {
+        "category": {
+          "type": "select",
+          "values": ["construction", "public"],
+          "default": "construction"
+        },
+        "vehicle_type": {
+          "type": "select",
+          "values": ["unspecified", "car", "van", "truck", "dump_truck", "concrete_mixer", "excavator", "wheel_loader", "forklift", "crane_mobile", "other"],
+          "default": "unspecified"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "name": "text_or_logo",
+      "privacy_sensitive": true,
+      "color": "#FF00FF",
+      "attributes": {
+        "content": {
+          "type": "select",
+          "values": ["unspecified", "logo", "text", "both"],
+          "default": "unspecified"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "name": "crane",
+      "privacy_sensitive": false,
+      "color": "#FFFF00",
+      "attributes": {
+        "type": {
+          "type": "select",
+          "values": ["unspecified", "tower_crane", "mobile_crane", "crawler_crane"],
+          "default": "unspecified"
+        },
+        "status": {
+          "type": "select",
+          "values": ["unspecified", "active", "idle"],
+          "default": "unspecified"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "name": "container",
+      "privacy_sensitive": false,
+      "color": "#00FFFF",
+      "attributes": {
+        "type": {
+          "type": "select",
+          "values": ["unspecified", "storage", "office", "sanitary", "break_room", "waste"],
+          "default": "unspecified"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "name": "scaffolding",
+      "privacy_sensitive": false,
+      "color": "#FFA500",
+      "attributes": {
+        "status": {
+          "type": "select",
+          "values": ["unspecified", "assembled", "partial"],
+          "default": "unspecified"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "name": "material_stack",
+      "privacy_sensitive": false,
+      "color": "#800080",
+      "attributes": {
+        "material": {
+          "type": "select",
+          "values": ["unspecified", "wood", "steel", "concrete", "bricks", "pipes", "pallets"],
+          "default": "unspecified"
+        },
+        "size": {
+          "type": "select",
+          "values": ["unspecified", "small", "medium", "large"],
+          "default": "unspecified"
+        }
+      }
+    }
+  ],
+  "anonymisation_rules": {
+    "face": "always_blur",
+    "person": "blur_face_region",
+    "vehicle": "blur_if_public",
+    "text_or_logo": "blur_optional"
+  }
+}
