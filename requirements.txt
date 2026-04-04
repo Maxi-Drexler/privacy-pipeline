@@ -1,0 +1,9 @@
+ultralytics>=8.3.0
+opencv-python-headless>=4.8.0
+numpy<2
+Pillow>=10.0
+tqdm>=4.65
+open-clip-torch>=2.24.0
+easyocr>=1.7.0
+ensemble-boxes>=1.0.9
+PyYAML>=6.0
