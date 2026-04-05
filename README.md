@@ -191,6 +191,37 @@ cd /workspace/privacy_pipeline
 pip install -r requirements.txt
 ```
 
+### Alternative: Setup Without Docker
+
+If you prefer not to use Docker, install the dependencies directly. Requires a CUDA-capable GPU with appropriate drivers.
+
+```bash
+cd privacy-pipeline
+
+# Create virtual environment (recommended)
+python3 -m venv venv
+source venv/bin/activate
+
+# Install PyTorch (adjust CUDA version to match your setup)
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+
+# Install pipeline dependencies
+pip install -r requirements.txt
+
+# Install Grounding DINO
+git clone https://github.com/IDEA-Research/GroundingDINO.git
+cd GroundingDINO && pip install -e .
+mkdir -p weights && cd weights
+wget https://github.com/IDEA-Research/GroundingDINO/releases/download/v0.1.0-alpha/groundingdino_swint_ogc.pth
+cd ../..
+
+# Run the pipeline (adjust paths to your data)
+python3 scripts/run_stages_1_to_3.py \
+    --raw-images /path/to/your/images \
+    --work-dir /path/to/workdir \
+    --num-samples 2500
+```
+
 ### 4. Grounding DINO Setup
 
 Grounding DINO is installed automatically during the Docker build. If running without Docker, install it manually:
