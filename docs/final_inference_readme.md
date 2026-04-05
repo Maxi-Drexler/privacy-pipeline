@@ -100,6 +100,30 @@ anonymisation:
   anonymise_classes: [face, person, text_or_logo]
 ```
 
+### Zone-Based Privacy Masking
+
+Static zones define image regions that are always blurred regardless of
+detections (e.g. neighbouring buildings, sky, camera mounting hardware).
+Zones are defined per camera setup in `config/zones.json`:
+```json
+{
+  "setup_1": {
+    "description": "Camera 1",
+    "zones": [
+      {"name": "Sky", "polygon": "full_width_top_25"},
+      {"name": "Right edge", "polygon": "right_5"},
+      {"name": "Bottom edge", "polygon": "full_width_bottom_5"}
+    ]
+  }
+}
+```
+
+Supported shorthands: `full_width_top_N`, `full_width_bottom_N`,
+`right_N`, `left_N` (where N is the percentage). Custom polygons
+use `[[x1,y1], [x2,y2], ...]` pixel coordinates.
+
+Pass `--zones-config config/zones.json` to Stage 5 or final inference.
+
 ### Adding a model
 
 Add an entry to `models`:
