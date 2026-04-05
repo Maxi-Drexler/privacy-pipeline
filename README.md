@@ -384,6 +384,18 @@ python3 scripts/03_auto_annotate.py \
     --skip-ocr
 ```
 
+Key optional arguments:
+
+| Argument             | Default | Description                              |
+|----------------------|---------|------------------------------------------|
+| `--use-sahi`         | False   | Enable SAHI tiled inference              |
+| `--sahi-slice-size`  | 1496    | SAHI tile size in pixels                 |
+| `--sahi-overlap`     | 0.15    | SAHI tile overlap ratio                  |
+| `--wbf-iou`          | 0.35    | WBF IoU threshold for box fusion         |
+| `--skip-ocr`         | False   | Skip OCR-based text detection            |
+| `--skip-clip`        | False   | Skip CLIP verification of detections     |
+| `--gdino-conf`       | 0.35    | Grounding DINO confidence threshold      |
+
 **Output:** `yolo_labels/`, `cvat_import.zip`, annotation statistics
 
 #### Stage 4: Train YOLO11 Detector
@@ -400,11 +412,22 @@ python3 scripts/04_train.py \
     --patience 20
 ```
 
+Key optional arguments:
+
+| Argument             | Default | Description                              |
+|----------------------|---------|------------------------------------------|
+| `--epochs`           | 100     | Maximum training epochs                  |
+| `--batch`            | 8       | Batch size                               |
+| `--patience`         | 20      | Early stopping patience                  |
+| `--run-name`         | auto    | Name for the training run                |
+| `--model-size`       | n       | YOLO11 variant (n/s/m/l/x)              |
+| `--oversample`       | 5       | Oversampling factor for corrected images |
+
 **Output:** Trained model weights at `{output-dir}/{run-name}/weights/best.pt`
 
 ### Stage 5: Anonymise
 
-Applies class-specific Gaussian blur with dynamic kernel sizing (kernel = strength × min dimension of bounding box).
+Applies class-specific Gaussian blur with dynamic kernel sizing (kernel = strength × min dimension of bounding box). If the input filenames follow the convention `Kamera[N]_00_YYYYMMDDHHMMSS.jpg`, the capture timestamp is overlaid in the bottom-right corner of each anonymised image. Use `--no-metadata` to disable this.
 
 **Person detections — confidence-based escalation:**
 
@@ -428,6 +451,19 @@ python3 scripts/05_anonymise.py \
     --output-dir /workspace/output/anonymised \
     --model /workspace/output/construction_v1/weights/best.pt
 ```
+
+Key optional arguments:
+
+| Argument             | Default | Description                              |
+|----------------------|---------|------------------------------------------|
+| `--confidence`       | 0.25    | Detection confidence threshold           |
+| `--face-high-thresh` | 0.5     | Tier-1 face confidence threshold         |
+| `--blur-strength`    | 51      | Base Gaussian kernel size                |
+| `--no-body-blur`     | False   | Disable tier-3 body blur                 |
+| `--no-metadata`      | False   | Disable timestamp overlay on output images |
+| `--draw-detections`  | False   | Draw bounding boxes on output            |
+| `--zones-config`     | None    | JSON config for static zone masks        |
+| `--max-images`       | None    | Limit number of images (for testing)     |
 
 **Output:** Anonymised images in output directory
 
