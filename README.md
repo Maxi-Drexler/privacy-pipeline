@@ -278,6 +278,7 @@ Key optional arguments:
 | `--sahi-overlap`     | 0.15    | SAHI tile overlap ratio                  |
 | `--wbf-iou`          | 0.35    | WBF IoU threshold for box fusion         |
 | `--skip-ocr`         | False   | Skip OCR-based text detection            |
+| `--skip-clip`        | False   | Skip CLIP verification of detections     |
 
 **Output:** `{work-dir}/prefiltered/`, `{work-dir}/selected/`, `{work-dir}/auto_annotations/`
 
@@ -326,6 +327,19 @@ python3 scripts/run_stages_4_to_6.py \
     --model /workspace/output/construction_v1/weights/best.pt \
     --skip-training
 ```
+
+Key optional arguments:
+
+| Argument             | Default          | Description                              |
+|----------------------|------------------|------------------------------------------|
+| `--epochs`           | 100              | Maximum training epochs                  |
+| `--batch`            | 8                | Batch size                               |
+| `--patience`         | 20               | Early stopping patience                  |
+| `--run-name`         | construction_v1  | Experiment name                          |
+| `--skip-training`    | False            | Use existing model, skip training        |
+| `--model`            | None             | Path to existing model (with --skip-training) |
+| `--no-body-blur`     | False            | Disable tier-3 body blur                 |
+| `--no-metadata`      | False            | Disable timestamp overlay on output      |
 
 #### Anonymise All Images
 
@@ -386,15 +400,16 @@ python3 scripts/03_auto_annotate.py \
 
 Key optional arguments:
 
-| Argument             | Default | Description                              |
-|----------------------|---------|------------------------------------------|
-| `--use-sahi`         | False   | Enable SAHI tiled inference              |
-| `--sahi-slice-size`  | 1496    | SAHI tile size in pixels                 |
-| `--sahi-overlap`     | 0.15    | SAHI tile overlap ratio                  |
-| `--wbf-iou`          | 0.35    | WBF IoU threshold for box fusion         |
-| `--skip-ocr`         | False   | Skip OCR-based text detection            |
-| `--skip-clip`        | False   | Skip CLIP verification of detections     |
-| `--gdino-conf`       | 0.35    | Grounding DINO confidence threshold      |
+| Argument              | Default | Description                              |
+|-----------------------|---------|------------------------------------------|
+| `--use-sahi`          | False   | Enable SAHI tiled inference              |
+| `--sahi-slice-size`   | 640     | SAHI tile size in pixels                 |
+| `--sahi-overlap`      | 0.25    | SAHI tile overlap ratio                  |
+| `--wbf-iou`           | 0.35    | WBF IoU threshold for box fusion         |
+| `--skip-ocr`          | False   | Skip OCR-based text detection            |
+| `--skip-clip`         | False   | Skip CLIP verification of detections     |
+| `--no-grounding-dino` | False   | Disable Grounding DINO model             |
+| `--max-images`        | None    | Limit number of images (for testing)     |
 
 **Output:** `yolo_labels/`, `cvat_import.zip`, annotation statistics
 
@@ -414,14 +429,15 @@ python3 scripts/04_train.py \
 
 Key optional arguments:
 
-| Argument             | Default | Description                              |
-|----------------------|---------|------------------------------------------|
-| `--epochs`           | 100     | Maximum training epochs                  |
-| `--batch`            | 8       | Batch size                               |
-| `--patience`         | 20      | Early stopping patience                  |
-| `--run-name`         | auto    | Name for the training run                |
-| `--model-size`       | n       | YOLO11 variant (n/s/m/l/x)              |
-| `--oversample`       | 5       | Oversampling factor for corrected images |
+| Argument         | Default          | Description                        |
+|------------------|------------------|------------------------------------|
+| `--epochs`       | 100              | Maximum training epochs            |
+| `--batch`        | 16               | Batch size                         |
+| `--patience`     | 20               | Early stopping patience            |
+| `--name`         | construction_v1  | Experiment name                    |
+| `--model`        | yolo11n.pt       | Base model weights                 |
+| `--val-ratio`    | 0.2              | Validation split ratio             |
+| `--skip-train`   | False            | Only prepare dataset, skip training|
 
 **Output:** Trained model weights at `{output-dir}/{run-name}/weights/best.pt`
 
