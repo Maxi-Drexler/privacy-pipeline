@@ -7,13 +7,13 @@
 A GDPR-compliant, open-source, on-premises privacy pipeline for construction site camera footage. Developed as part of a Bachelor's thesis at the Technical University of Munich (TUM), Chair of Computational Modeling and Simulation (CMS).
 
 **Author:** Maximilian Drexler
-**Supervisors:** Prof. Dr.-Ing. André Borrmann, Dr.-Ing. Fabian Pfitzner
+**Supervisors:** Prof. Dr.-Ing. Andre Borrmann, Dr.-Ing. Fabian Pfitzner
 
 ---
 
 ## Overview
 
-This pipeline processes raw construction site camera images through six stages to produce anonymised output suitable for public sharing or further analysis. It addresses the **anonymisation paradox** — the necessity of processing personal data to build the very systems designed to protect it — by implementing intelligent dataset curation that achieves ~99% data reduction before any manual review.
+This pipeline processes raw construction site camera images through six stages to produce anonymised output suitable for public sharing or further analysis. It addresses the **anonymisation paradox** -- the necessity of processing personal data to build the very systems designed to protect it -- by implementing intelligent dataset curation that selects a small, representative training subset from a large image corpus before any manual review.
 
 The system uses a multi-model ensemble approach combining supervised and zero-shot detectors, fused via Weighted Box Fusion (WBF), to detect and anonymise privacy-sensitive entities such as faces, persons, vehicles, and text.
 
@@ -48,7 +48,8 @@ The system uses a multi-model ensemble approach combining supervised and zero-sh
 │  Stage 1    │───>│    Stage 2      │───>│    Stage 3      │
 │  Pre-Filter │    │ Intelligent     │    │ Auto-Annotation │
 │ (quality)   │    │ Selection       │    │ (4-model        │
-│             │    │ (2500 images)   │    │  ensemble)      │
+│             │    │ (training       │    │  ensemble)      │
+│             │    │  subset)        │    │                 │
 └─────────────┘    └─────────────────┘    └─────────────────┘
                                                   │
                                         ┌─────────┴─────────┐
@@ -63,6 +64,8 @@ The system uses a multi-model ensemble approach combining supervised and zero-sh
 │  privacy)   │    │                 │    │                 │
 └─────────────┘    └─────────────────┘    └─────────────────┘
 ```
+
+**Stages 1-4** are for model development: they select a small training subset, annotate it, and train a detector. **Stage 5** is for deployment: it applies the trained model to anonymise **all** images, not just the training subset. Stage 6 evaluates the results.
 
 **Between Stages 3 and 4**, manual annotation correction in CVAT is required. This is the only step requiring human intervention.
 
@@ -80,20 +83,15 @@ privacy_pipeline/
 │   ├── 05_anonymise.py              # Stage 5: Confidence-based Gaussian blur
 │   ├── 06_evaluate.py               # Stage 6: mAP, recall, privacy score
 │   ├── run_stages_1_to_3.py         # Combined runner for Stages 1-3
-│   └── run_stages_4_to_6.py         # Combined runner for Stages 4-6
-├── src/
-│   ├── prefilter.py                 # Pre-filtering logic
-│   ├── selector.py                  # Intelligent selection logic
-│   ├── annotator.py                 # Multi-model annotation engine
-│   ├── anonymiser.py                # Anonymisation engine
-│   └── utils/
-│       ├── image_quality.py         # Brightness, sharpness, edge density metrics
-│       ├── nms.py                   # Cross-model NMS
-│       └── converters.py            # Format converters (COCO, YOLO, CVAT)
+│   ├── run_stages_4_to_6.py         # Combined runner for Stages 4-6
+│   └── final_inference.py           # Multi-model inference (see below)
 ├── config/
 │   ├── pipeline_config.yaml         # Central pipeline settings
 │   ├── dataset.yaml                 # YOLO training configuration
-│   └── taxonomy.json                # 8-class taxonomy with attributes
+│   ├── taxonomy.json                # 8-class taxonomy with attributes
+│   └── inference.yaml               # Multi-model inference config (generated)
+├── docs/
+│   └── FINAL_INFERENCE_README.md    # Detailed multi-model documentation
 ├── requirements.txt
 ├── LICENSE
 └── README.md
@@ -144,6 +142,12 @@ python3 scripts/run_stages_4_to_6.py \
     --dataset-yaml /workspace/data/pipeline_run/training/dataset.yaml \
     --test-images /workspace/data/pipeline_run/selected \
     --output-dir /workspace/output
+
+# 6. Anonymise ALL images (not just the training subset)
+python3 scripts/05_anonymise.py \
+    --model /workspace/output/construction_v1/weights/best.pt \
+    --input-dir /workspace/data/raw_images \
+    --output-dir /workspace/output/anonymised_all
 ```
 
 For detailed setup and configuration options, see sections below.
@@ -235,7 +239,7 @@ screen -S pipeline
 
 ### Option A: Combined Runners
 
-#### Stages 1–3 (Raw Images → Auto-Annotations)
+#### Stages 1-3 (Raw Images -> Auto-Annotations)
 
 ```bash
 python3 scripts/run_stages_1_to_3.py \
@@ -276,25 +280,25 @@ Key optional arguments:
 
 #### Manual Step: CVAT Annotation Correction
 
-After Stages 1–3 complete, the auto-generated annotations must be manually reviewed and corrected before training:
+After Stages 1-3 complete, the auto-generated annotations must be manually reviewed and corrected before training:
 
 1. Import annotations into CVAT:
    - Create a new Task in CVAT with the selected images
-   - Actions → Upload Annotations → COCO 1.0 → select `cvat_import.zip`
+   - Actions -> Upload Annotations -> COCO 1.0 -> select `cvat_import.zip`
 
 2. Review and correct:
    - Fix incorrect bounding boxes
-   - Add missing detections (especially faces — missed faces are GDPR violations)
+   - Add missing detections (especially faces -- missed faces are GDPR violations)
    - Remove false positives
    - Useful shortcuts: `N` (new box), `D`/`A` (next/prev image), `Ctrl+S` (save)
 
 3. Export corrected annotations:
-   - Actions → Export Task Dataset → YOLO 1.1 format
+   - Actions -> Export Task Dataset -> YOLO 1.1 format
    - Place the exported dataset where `dataset.yaml` points to
 
 ---
 
-#### Stages 4–6 (Corrected Annotations → Anonymised Output)
+#### Stages 4-6 (Corrected Annotations -> Anonymised Output)
 
 ```bash
 python3 scripts/run_stages_4_to_6.py \
@@ -316,6 +320,17 @@ python3 scripts/run_stages_4_to_6.py \
     --output-dir /workspace/output \
     --model /workspace/output/construction_v1/weights/best.pt \
     --skip-training
+```
+
+#### Anonymise All Images
+
+After training and evaluation, apply the model to your **entire** image corpus:
+
+```bash
+python3 scripts/05_anonymise.py \
+    --model /workspace/output/construction_v1/weights/best.pt \
+    --input-dir /workspace/data/raw_images \
+    --output-dir /workspace/output/anonymised_all
 ```
 
 ---
@@ -416,6 +431,40 @@ python3 scripts/06_evaluate.py \
 
 ---
 
+## Multi-Model Deployment (Advanced)
+
+If a single trained model does not achieve satisfactory results for all classes (particularly face detection), the pipeline supports combining multiple specialised models at inference time.
+
+This approach is config-driven: a YAML file specifies which models to load, which classes each model handles, and how overlapping detections are merged.
+
+```bash
+# Generate a default config
+python3 scripts/final_inference.py --generate-config config/inference.yaml
+
+# Edit config/inference.yaml to set your model paths and class assignments
+
+# Run multi-model inference with anonymisation
+python3 scripts/final_inference.py \
+    --config config/inference.yaml \
+    --input-dir /workspace/data/raw_images \
+    --output-dir /workspace/output/final \
+    --anonymise
+```
+
+Pre-trained weights for this thesis are available as a GitHub Release:
+
+| Model | File | Classes |
+|-------|------|---------|
+| General detector | `v12_general.pt` | person, vehicle, text_or_logo, crane, container, scaffolding, material_stack |
+| Face detector | `face_only.pt` | face |
+| Person supplement | `v11_person_supplement.pt` | person (additional detections) |
+
+**Note:** If your single model from Stage 4 performs well across all classes, you do not need multi-model inference. Proceed directly with Stage 5.
+
+For details on configuration, training specialised models, and integration, see [docs/FINAL_INFERENCE_README.md](docs/FINAL_INFERENCE_README.md).
+
+---
+
 ## Configuration
 
 ### pipeline_config.yaml
@@ -430,6 +479,10 @@ YOLO training configuration specifying train/val splits and class names. Adjust 
 
 Defines the 8-class detection taxonomy with attributes (e.g., `privacy_sensitive: true/false`, `face_visible`, `partially_occluded`).
 
+### inference.yaml
+
+Multi-model inference configuration. Generated via `final_inference.py --generate-config`. Specifies model paths, class assignments, WBF settings, and anonymisation parameters. See [docs/FINAL_INFERENCE_README.md](docs/FINAL_INFERENCE_README.md).
+
 ---
 
 ## Typical Workflow
@@ -437,17 +490,23 @@ Defines the 8-class detection taxonomy with attributes (e.g., `privacy_sensitive
 ```
 1. Place raw images in /workspace/data/raw_images/
 
-2. Run Stages 1-3:
+2. Run Stages 1-3 (selects training subset, generates annotations):
    python3 scripts/run_stages_1_to_3.py --raw-images ... --work-dir ...
 
 3. Import cvat_import.zip into CVAT, review and correct annotations
 
 4. Export corrected annotations from CVAT in YOLO 1.1 format
 
-5. Run Stages 4-6:
+5. Run Stages 4-6 (train model, anonymise training subset, evaluate):
    python3 scripts/run_stages_4_to_6.py --dataset-yaml ... --test-images ...
 
-6. Anonymised images are in the output directory
+6. If satisfied: anonymise ALL images with the trained model:
+   python3 scripts/05_anonymise.py --model ... --input-dir /all/images --output-dir ...
+
+7. If face detection needs improvement: train a specialised model,
+   configure multi-model inference (see docs/FINAL_INFERENCE_README.md),
+   then anonymise all images with:
+   python3 scripts/final_inference.py --config ... --input-dir /all/images --anonymise
 ```
 
 ---
@@ -471,4 +530,4 @@ If you use this pipeline in your research, please cite:
 
 ## Acknowledgements
 
-This work was conducted at the Chair of Computational Modeling and Simulation (CMS), TUM School of Engineering and Design, Technical University of Munich. Special thanks to Prof. Dr.-Ing. André Borrmann and Dr.-Ing. Fabian Pfitzner for their supervision and guidance.
+This work was conducted at the Chair of Computational Modeling and Simulation (CMS), TUM School of Engineering and Design, Technical University of Munich. Special thanks to Prof. Dr.-Ing. Andre Borrmann and Dr.-Ing. Fabian Pfitzner for their supervision and guidance.
