@@ -466,7 +466,7 @@ Pre-trained weights for this thesis are available as a GitHub Release:
 
 **Note:** If your single model from Stage 4 performs well across all classes, you do not need multi-model inference. Proceed directly with Stage 5.
 
-For details on configuration, training specialised models, and integration, see [docs/FINAL_INFERENCE_README.md](docs/FINAL_INFERENCE_README.md).
+For details on configuration, training specialised models, and integration, see [docs/final_inference_readme.md](docs/final_inference_readme.md).
 
 ---
 
@@ -486,7 +486,7 @@ Defines the 8-class detection taxonomy with attributes (e.g., `privacy_sensitive
 
 ### inference.yaml
 
-Multi-model inference configuration. Generated via `final_inference.py --generate-config`. Specifies model paths, class assignments, WBF settings, and anonymisation parameters. See [docs/FINAL_INFERENCE_README.md](docs/FINAL_INFERENCE_README.md).
+Multi-model inference configuration. Generated via `final_inference.py --generate-config`. Specifies model paths, class assignments, WBF settings, and anonymisation parameters. See [docs/final_inference_readme.md](docs/final_inference_readme.md).
 
 ---
 
