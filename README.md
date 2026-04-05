@@ -222,20 +222,7 @@ python3 scripts/run_stages_1_to_3.py \
     --num-samples 2500
 ```
 
-### 4. Grounding DINO Setup
-
-Grounding DINO is installed automatically during the Docker build. If running without Docker, install it manually:
-
-```bash
-cd /workspace
-git clone https://github.com/IDEA-Research/GroundingDINO.git
-cd GroundingDINO
-pip install -e .
-mkdir -p weights && cd weights
-wget https://github.com/IDEA-Research/GroundingDINO/releases/download/v0.1.0-alpha/groundingdino_swint_ogc.pth
-```
-
-### 5. CVAT Setup (For Annotation Review)
+### 4. CVAT Setup (For Annotation Review)
 
 CVAT runs as a separate Docker Compose stack:
 
