@@ -402,15 +402,25 @@ python3 scripts/04_train.py \
 
 **Output:** Trained model weights at `{output-dir}/{run-name}/weights/best.pt`
 
-#### Stage 5: Anonymise
+### Stage 5: Anonymise
 
-Applies three-tier confidence-based Gaussian blur:
+Applies class-specific Gaussian blur with dynamic kernel sizing (kernel = strength × min dimension of bounding box).
 
-| Confidence Level | Strategy                                      |
-|------------------|-----------------------------------------------|
-| High             | Blur detected face region only                |
-| Low              | Blur face region + safety buffer              |
-| No face detected | Blur top 33% of the person bounding box       |
+**Person detections — confidence-based escalation:**
+
+| Tier | Condition | Strategy | Strength |
+|------|-----------|----------|----------|
+| 1 | Face detected, high confidence | Blur face region + padding | 2.0 |
+| 1.5 | Small person reclassified as face | Blur entire detection + padding | 2.0 |
+| 2 | Face detected, low confidence | Blur face region + doubled padding | 2.0 |
+| 3 | No face detected | Blur top 33% of person bounding box | body kernel |
+
+**Other classes:**
+
+| Class | Strategy | Strength |
+|-------|----------|----------|
+| text_or_logo | Blur entire bounding box + padding | 1.0 |
+| vehicle, crane, container, scaffolding, material_stack | No blur | — |
 
 ```bash
 python3 scripts/05_anonymise.py \
