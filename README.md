@@ -191,47 +191,34 @@ cd /workspace/privacy_pipeline
 pip install -r requirements.txt
 ```
 
-### Alternative: Setup Without Docker
-
-If you prefer not to use Docker, install the dependencies directly. Requires a CUDA-capable GPU with appropriate drivers.
+Grounding DINO is installed automatically during the Docker build. If not present, install manually:
 
 ```bash
-cd privacy-pipeline
-
-# Create virtual environment (recommended)
-python3 -m venv venv
-source venv/bin/activate
-
-# Install PyTorch (adjust CUDA version to match your setup)
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
-
-# Install pipeline dependencies
-pip install -r requirements.txt
-
-# Install Grounding DINO
+cd /workspace
 git clone https://github.com/IDEA-Research/GroundingDINO.git
 cd GroundingDINO && pip install -e .
 mkdir -p weights && cd weights
 wget https://github.com/IDEA-Research/GroundingDINO/releases/download/v0.1.0-alpha/groundingdino_swint_ogc.pth
-cd ../..
-
-# Run the pipeline (adjust paths to your data)
-python3 scripts/run_stages_1_to_3.py \
-    --raw-images /path/to/your/images \
-    --work-dir /path/to/workdir \
-    --num-samples 2500
 ```
 
 ### 4. CVAT Setup (For Annotation Review)
 
-CVAT runs as a separate Docker Compose stack:
+CVAT is used between Stages 3 and 4 for manual annotation correction. Two options:
+
+**Option A: Self-hosted (requires Docker)**
 
 ```bash
-cd ~/cvat
-docker compose up -d
+git clone https://github.com/cvat-ai/cvat.git
+cd cvat && docker compose up -d
 ```
 
 Access via `http://localhost:<port>` (forward the configured port if connecting via SSH).
+
+**Option B: Cloud-hosted**
+
+Use the free tier at [app.cvat.ai](https://app.cvat.ai) -- no local installation required. Upload images and import `cvat_import.zip` directly in the browser. Note: this uploads images to an external server. If your data contains privacy-sensitive content (e.g. unanonymised construction site footage), use the self-hosted option to keep data on-premises.
+
+CVAT is still required for annotation review between Stages 3 and 4.
 
 ---
 
