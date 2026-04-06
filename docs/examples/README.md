@@ -2,11 +2,11 @@
 
 Each image below shows the anonymised output without (left) and with (right) detection overlays, including bounding boxes, class labels, and confidence scores. In some cases, logos that were not detected by the model have been manually obscured with coloured bars.
 
-These examples show the full image without any exclusion zones applied. In practice, configurable zones can be defined to exclude specific image regions (e.g., sky, neighbouring properties) from detection and anonymisation, as described in the pipeline configuration.
+All examples have been manually reviewed and any remaining undetected privacy-sensitive elements (faces, logos, text) have been obscured with black boxes to ensure full anonymisation.
 
 #### Manually Reviewed Examples (1–10)
 
-The first ten examples have been manually reviewed and any remaining undetected privacy-sensitive elements (faces, logos, text) have been obscured with black boxes to ensure full anonymisation.
+These examples show the full image without any exclusion zones applied. In practice, configurable zones can be defined to exclude specific image regions (e.g., sky, neighbouring properties) from detection and anonymisation, as described in the pipeline configuration.
 
 <p align="center">
   <img src="example_01.jpg" width="100%">
@@ -23,7 +23,7 @@ The first ten examples have been manually reviewed and any remaining undetected 
 
 #### Additional Pipeline Output Examples (11–60)
 
-The following examples show unmodified pipeline output. Image resolution and quality have been reduced to keep file sizes compatible with GitHub. As a secondary benefit, any faces, logos, or text instances not detected by the pipeline are further obscured by the lower image quality. Since these images serve as visual examples of the pipeline output, full resolution is not required.
+The following examples show the pipeline output including exclusion zones. Image resolution has been reduced to keep file sizes compatible with GitHub. Since these images serve as visual examples of the pipeline output, full resolution is not required.
 
 <p align="center">
   <img src="example_11.jpg" width="100%">
