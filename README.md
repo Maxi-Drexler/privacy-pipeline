@@ -19,13 +19,12 @@ The system uses a multi-model ensemble approach combining supervised and zero-sh
 
 ### Example Results
 
-Each image below shows the anonymised output without (left) and with (right) detection overlays, including bounding boxes, class labels, and confidence scores. In some cases, logos that were not detected by the model have been manually obscured with coloured bars.
+Each image below shows the anonymised output without (left) and with (right) detection overlays, including bounding boxes, class labels, and confidence scores. In some cases, logos that were not detected by the model have been manually obscured with coloured bars. 
 
-These examples show the full image without any exclusion zones applied. In practice, configurable zones can be defined to exclude specific image regions (e.g., sky, neighbouring properties) from detection and anonymisation, as described in the [pipeline configuration](#zone-based-privacy-masking). There are more examples under docs/examples.
+This example shows the full image without any exclusion zones applied. In practice, configurable zones can be defined to exclude specific image regions (e.g., sky, neighbouring properties) from detection and anonymisation, as described in the [pipeline configuration](#zone-based-privacy-masking). More examples can be found under docs/examples.
 
 <p align="center">
   <img src="docs/examples/example_01.jpg" width="100%">
-  <img src="docs/examples/example_10.jpg" width="100%">
 </p>
 
 ### Detection Taxonomy (8 Classes)
@@ -512,12 +511,18 @@ python3 scripts/final_inference.py --generate-config config/inference.yaml
 
 # Edit config/inference.yaml to set your model paths and class assignments
 
-# Run multi-model inference with anonymisation
+# Run multi-model inference
+python3 scripts/final_inference.py \
+    --config config/inference.yaml \
+    --input-dir /workspace/data/raw_images \
+    --output-dir /workspace/output/final
+
+# With bounding box overlay for review
 python3 scripts/final_inference.py \
     --config config/inference.yaml \
     --input-dir /workspace/data/raw_images \
     --output-dir /workspace/output/final \
-    --anonymise
+    --vis
 ```
 
 Pre-trained weights for this thesis are available as a GitHub Release:
@@ -554,7 +559,7 @@ Multi-model inference configuration. Generated via `final_inference.py --generat
 
 ### Zone-Based Privacy Masking
 
-Static zones define image regions that are always blurred regardless of detections, such as neighbouring buildings, sky, or camera mounting hardware. Zones are defined per camera setup in `config/zones.json` and applied in Stage 5 before detection-based anonymisation.
+Static zones define image regions that are blurred before detection, such as neighbouring buildings, sky, or camera mounting hardware. Blurring zones on the input image ensures that no personal data within excluded regions is processed by the detector. Zones are defined per camera setup in `config/zones.json`.
 ```json
 {
   "setup_1": {
@@ -592,11 +597,19 @@ Pass `--zones-config config/zones.json` to Stage 5 or `final_inference.py`.
 6. If satisfied: anonymise ALL images with the trained model:
    python3 scripts/05_anonymise.py --model ... --input-dir /all/images --output-dir ...
 
+   To also output images with bounding box overlays for review:
+   python3 scripts/05_anonymise.py --model ... --input-dir ... --output-dir ... --draw-detections
+
 7. If face detection needs improvement: train a specialised model,
    configure multi-model inference (see docs/FINAL_INFERENCE_README.md),
    then anonymise all images with:
-   python3 scripts/final_inference.py --config ... --input-dir /all/images --anonymise
+   python3 scripts/final_inference.py --config ... --input-dir /all/images
+
+   With bounding box overlay:
+   python3 scripts/final_inference.py --config ... --input-dir /all/images --vis
 ```
+
+All output images are always anonymised. The `--vis` flag (final_inference) and `--draw-detections` flag (Stage 5) add bounding box overlays on top of the anonymised output for review purposes. Labels in YOLO format are always saved to `output-dir/labels/`.
 
 ---
 
