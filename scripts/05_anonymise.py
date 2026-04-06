@@ -114,18 +114,30 @@ def parse_zone_polygon(polygon_def, img_w, img_h):
             y_start = int(img_h * (1 - pct))
             return np.array([[0, y_start], [img_w, y_start],
                              [img_w, img_h], [0, img_h]])
+        elif polygon_def.startswith("right_"):
+            pct = int(polygon_def.split("_")[-1]) / 100
+            x_start = int(img_w * (1 - pct))
+            return np.array([[x_start, 0], [img_w, 0],
+                             [img_w, img_h], [x_start, img_h]])
+        elif polygon_def.startswith("left_"):
+            pct = int(polygon_def.split("_")[-1]) / 100
+            return np.array([[0, 0], [int(img_w * pct), 0],
+                             [int(img_w * pct), img_h], [0, img_h]])
+        else:
+            raise ValueError(f"Unknown zone shorthand: {polygon_def}")
 
     coords = polygon_def
     if coords and not isinstance(coords[0], (list, tuple)):
-        coords = [[coords[i], coords[i+1]] for i in range(0, len(coords), 2)]
+        coords = [[coords[i], coords[i + 1]] for i in range(0, len(coords), 2)]
     return np.array(coords, dtype=np.int32)
 
 
 def apply_zone_masks(image, zones, kernel_size=99):
-    """Apply static zone blurring as the first anonymisation step.
+    """Blur static exclusion zones before detection.
 
-    This implements the data minimisation principle of GDPR Article 5(1)(c)
-    by obscuring image regions irrelevant to monitoring before any detection.
+    Applied to the input image before the model runs. This ensures
+    personal data in excluded regions is never processed by the
+    detector, reducing both privacy exposure and computation.
 
     Args:
         image: OpenCV BGR image (modified in-place).
@@ -261,6 +273,50 @@ def add_padding(x1, y1, x2, y2, img_w, img_h, padding_pct=10):
     )
 
 
+def overlay_metadata(image, filename):
+    """Extract timestamp from filename and overlay on image.
+
+    Parses the filename pattern Kamera[N]_00_YYYYMMDDHHMMSS.jpg
+    and renders date and time in the bottom-right corner with a
+    semi-transparent black background for readability.
+
+    Args:
+        image: OpenCV BGR image (modified in-place).
+        filename: Image filename containing timestamp.
+
+    Returns:
+        The modified image, or unmodified if parsing fails.
+    """
+    stem = Path(filename).stem
+    try:
+        timestamp_str = stem.split("_")[-1]
+        if len(timestamp_str) != 14 or not timestamp_str.isdigit():
+            return image
+        date_part = f"{timestamp_str[0:4]}-{timestamp_str[4:6]}-{timestamp_str[6:8]}"
+        time_part = f"{timestamp_str[8:10]}:{timestamp_str[10:12]}:{timestamp_str[12:14]}"
+        text = f"{date_part}  {time_part}"
+    except (IndexError, ValueError):
+        return image
+
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    scale = max(0.8, image.shape[1] / 1500)
+    thickness = max(2, int(scale * 2))
+
+    (tw, th), baseline = cv2.getTextSize(text, font, scale, thickness)
+    margin = 10
+    x = image.shape[1] - tw - margin
+    y = image.shape[0] - margin
+
+    overlay = image.copy()
+    cv2.rectangle(overlay, (x - 6, y - th - 6), (x + tw + 6, y + baseline + 4),
+                  (0, 0, 0), -1)
+    cv2.addWeighted(overlay, 0.6, image, 0.4, 0, image)
+    cv2.putText(image, text, (x, y), font, scale, (0, 255, 255), thickness,
+                cv2.LINE_AA)
+
+    return image
+
+
 def anonymise_image(image, detections, face_high_thresh=0.5,
                     base_kernel=51, body_kernel=31, padding_pct=10,
                     body_blur_top_pct=0.33, enable_body_blur=True):
@@ -392,7 +448,7 @@ def process_directory(model, input_dir, output_dir, confidence=0.25,
                       face_high_thresh=0.5, base_kernel=51, body_kernel=31,
                       padding_pct=10, max_images=None, enable_body_blur=True,
                       draw_detections_flag=False, draw_blur_only=False,
-                      zone_config=None):
+                      zone_config=None, show_metadata=True):
     """Process all images in a directory.
 
     Args:
@@ -409,6 +465,7 @@ def process_directory(model, input_dir, output_dir, confidence=0.25,
         draw_detections_flag: Draw bounding boxes on output.
         draw_blur_only: Only draw boxes for blurred classes.
         zone_config: Dict mapping setup names to zone definitions.
+        show_metadata: Overlay timestamp from filename on output images.
 
     Returns:
         Dict with processing statistics.
@@ -441,7 +498,7 @@ def process_directory(model, input_dir, output_dir, confidence=0.25,
             image, n_zones = apply_zone_masks(image, zones)
             total_stats["zones_applied"] += n_zones
 
-        results = model(img_path, conf=confidence, verbose=False)
+        results = model(image, conf=confidence, verbose=False)
 
         detections = []
         if results and results[0].boxes is not None:
@@ -476,6 +533,9 @@ def process_directory(model, input_dir, output_dir, confidence=0.25,
                 draw_detection(image, b[0], b[1], b[2], b[3],
                                cls, det["confidence"])
 
+        if show_metadata:
+            overlay_metadata(image, filename)
+
         out_path = os.path.join(output_dir, filename)
         cv2.imwrite(out_path, image, [cv2.IMWRITE_JPEG_QUALITY, 95])
         total_stats["processed"] += 1
@@ -507,6 +567,8 @@ def main():
                         help="Process at most N images (for testing).")
     parser.add_argument("--no-body-blur", action="store_true",
                         help="Disable tier-3 body blur for faceless persons.")
+    parser.add_argument("--no-metadata", action="store_true",
+                        help="Disable timestamp overlay on output images.")
     parser.add_argument("--draw-detections", action="store_true",
                         help="Draw bounding boxes and class labels on output.")
     parser.add_argument("--draw-blur-only", action="store_true",
@@ -535,6 +597,7 @@ def main():
         draw_detections_flag=args.draw_detections,
         draw_blur_only=args.draw_blur_only,
         zone_config=load_zone_config(args.zones_config),
+        show_metadata=not args.no_metadata,
     )
 
     print("\n" + "=" * 60)
