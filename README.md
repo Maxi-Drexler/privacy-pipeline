@@ -19,12 +19,22 @@ The system uses a multi-model ensemble approach combining supervised and zero-sh
 
 ### Example Results
 
-| Original | Anonymised |
-|----------|------------|
-| ![Original](docs/examples/original_01.jpg) | ![Anonymised](docs/examples/anonymised_01.jpg) |
-| ![Original](docs/examples/original_02.jpg) | ![Anonymised](docs/examples/anonymised_02.jpg) |
+Each image below shows the anonymised output without (left) and with (right) detection overlays, including bounding boxes, class labels, and confidence scores. In some cases, logos that were not detected by the model have been manually obscured with coloured bars.
 
-*Place your own before/after images in `docs/examples/`.*
+These examples show the full image without any exclusion zones applied. In practice, configurable zones can be defined to exclude specific image regions (e.g., sky, neighbouring properties) from detection and anonymisation, as described in the [pipeline configuration](#zone-based-privacy-masking).
+
+<p align="center">
+  <img src="docs/examples/example_01.jpg" width="100%">
+  <img src="docs/examples/example_02.jpg" width="100%">
+  <img src="docs/examples/example_03.jpg" width="100%">
+  <img src="docs/examples/example_04.jpg" width="100%">
+  <img src="docs/examples/example_05.jpg" width="100%">
+  <img src="docs/examples/example_06.jpg" width="100%">
+  <img src="docs/examples/example_07.jpg" width="100%">
+  <img src="docs/examples/example_08.jpg" width="100%">
+  <img src="docs/examples/example_09.jpg" width="100%">
+  <img src="docs/examples/example_10.jpg" width="100%">
+</p>
 
 ### Detection Taxonomy (8 Classes)
 
@@ -443,9 +453,9 @@ Key optional arguments:
 
 ### Stage 5: Anonymise
 
-Applies class-specific Gaussian blur with dynamic kernel sizing (kernel = strength × min dimension of bounding box). If the input filenames follow the convention `Kamera[N]_00_YYYYMMDDHHMMSS.jpg`, the capture timestamp is overlaid in the bottom-right corner of each anonymised image. Use `--no-metadata` to disable this.
+Applies class-specific Gaussian blur with dynamic kernel sizing (kernel = strength x min dimension of bounding box). If the input filenames follow the convention `Kamera[N]_00_YYYYMMDDHHMMSS.jpg`, the capture timestamp is overlaid in the bottom-right corner of each anonymised image. Use `--no-metadata` to disable this.
 
-**Person detections — confidence-based escalation:**
+**Person detections -- confidence-based escalation:**
 
 | Tier | Condition | Strategy | Strength |
 |------|-----------|----------|----------|
@@ -459,7 +469,7 @@ Applies class-specific Gaussian blur with dynamic kernel sizing (kernel = streng
 | Class | Strategy | Strength |
 |-------|----------|----------|
 | text_or_logo | Blur entire bounding box + padding | 1.0 |
-| vehicle, crane, container, scaffolding, material_stack | No blur | — |
+| vehicle, crane, container, scaffolding, material_stack | No blur | -- |
 
 ```bash
 python3 scripts/05_anonymise.py \
@@ -618,3 +628,9 @@ If you use this pipeline in your research, please cite:
 ## Acknowledgements
 
 This work was conducted at the Chair of Computational Modeling and Simulation (CMS), TUM School of Engineering and Design, Technical University of Munich. Special thanks to Prof. Dr.-Ing. Andre Borrmann and Dr.-Ing. Fabian Pfitzner for their supervision and guidance.
+
+---
+
+## License
+
+MIT License. See [LICENSE](LICENSE) for details.
