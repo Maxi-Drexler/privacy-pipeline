@@ -92,6 +92,7 @@ privacy_pipeline/
 │   ├── taxonomy.json                # 8-class taxonomy with attributes
 │   └── inference.yaml               # Multi-model inference config (generated)
 ├── docs/
+│   ├── examples/                    # Anonymised example images (60 samples)
 │   └── FINAL_INFERENCE_README.md    # Detailed multi-model documentation
 ├── requirements.txt
 ├── LICENSE
