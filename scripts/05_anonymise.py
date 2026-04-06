@@ -166,6 +166,38 @@ def apply_zone_masks(image, zones, kernel_size=99):
     return image, count
 
 
+def filter_detections_in_zones(detections, zones, img_w, img_h):
+    """Remove detections whose center falls within an exclusion zone.
+
+    Args:
+        detections: List of detection dicts with 'bbox' key.
+        zones: List of zone dicts with 'polygon' key.
+        img_w: Image width.
+        img_h: Image height.
+
+    Returns:
+        Filtered list of detections.
+    """
+    if not zones:
+        return detections
+
+    zone_mask = np.zeros((img_h, img_w), dtype=np.uint8)
+    for zone in zones:
+        poly = parse_zone_polygon(zone["polygon"], img_w, img_h)
+        cv2.fillPoly(zone_mask, [poly], 255)
+
+    filtered = []
+    for d in detections:
+        cx = int((d["bbox"][0] + d["bbox"][2]) / 2)
+        cy = int((d["bbox"][1] + d["bbox"][3]) / 2)
+        cx = max(0, min(cx, img_w - 1))
+        cy = max(0, min(cy, img_h - 1))
+        if zone_mask[cy, cx] == 0:
+            filtered.append(d)
+
+    return filtered
+
+
 def detect_setup_from_filename(filename):
     """Detect camera setup from filename pattern.
 
@@ -492,6 +524,8 @@ def process_directory(model, input_dir, output_dir, confidence=0.25,
             total_stats["errors"] += 1
             continue
 
+        h, w = image.shape[:2]
+        zones = []
         if zone_config:
             setup = detect_setup_from_filename(filename)
             zones = zone_config.get(setup, {}).get("zones", []) if setup else []
@@ -513,6 +547,8 @@ def process_directory(model, input_dir, output_dir, confidence=0.25,
                     "class_id": cls_id,
                 })
                 total_stats[f"det_{cls_name}"] += 1
+
+        detections = filter_detections_in_zones(detections, zones, w, h)
 
         image, img_stats = anonymise_image(
             image, detections,
