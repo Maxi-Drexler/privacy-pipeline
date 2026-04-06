@@ -21,7 +21,7 @@ These examples show the full image without any exclusion zones applied. In pract
   <img src="example_10.jpg" width="100%">
 </p>
 
-#### Additional Pipeline Output Examples (11–60)
+#### Additional Manually Reviewed Low-Res Examples (11–60)
 
 The following examples show the pipeline output including exclusion zones. Image resolution has been reduced to keep file sizes compatible with GitHub. Since these images serve as visual examples of the pipeline output, full resolution is not required.
 
