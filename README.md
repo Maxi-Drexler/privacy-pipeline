@@ -21,7 +21,7 @@ The system uses a multi-model ensemble approach combining supervised and zero-sh
 
 Each image below shows the anonymised output without (left) and with (right) detection overlays, including bounding boxes, class labels, and confidence scores. In some cases, logos that were not detected by the model have been manually obscured with coloured bars.
 
-These examples show the full image without any exclusion zones applied. In practice, configurable zones can be defined to exclude specific image regions (e.g., sky, neighbouring properties) from detection and anonymisation, as described in the [pipeline configuration](#zone-based-privacy-masking).
+These examples show the full image without any exclusion zones applied. In practice, configurable zones can be defined to exclude specific image regions (e.g., sky, neighbouring properties) from detection and anonymisation, as described in the [pipeline configuration](#zone-based-privacy-masking). There are more examples under docs/examples.
 
 <p align="center">
   <img src="docs/examples/example_01.jpg" width="100%">
