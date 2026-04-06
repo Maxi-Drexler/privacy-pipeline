@@ -13,7 +13,7 @@ assignments, confidence thresholds, and anonymisation parameters.
 
 Usage:
     python final_inference.py --config config/inference.yaml --input-dir /path/to/images
-    python final_inference.py --config config/inference.yaml --input-dir /path/to/images --anonymise --vis
+    python final_inference.py --config config/inference.yaml --input-dir /path/to/images --vis
     python final_inference.py --generate-config config/inference.yaml
 
 Author: Maximilian Drexler
@@ -497,6 +497,38 @@ def apply_zone_masks(image, zones, kernel_size=99):
     return image, count
 
 
+def filter_detections_in_zones(detections, zones, img_w, img_h):
+    """Remove detections whose center falls within an exclusion zone.
+
+    Args:
+        detections: List of detection dicts with 'bbox' key.
+        zones: List of zone dicts with 'polygon' key.
+        img_w: Image width.
+        img_h: Image height.
+
+    Returns:
+        Filtered list of detections.
+    """
+    if not zones:
+        return detections
+
+    zone_mask = np.zeros((img_h, img_w), dtype=np.uint8)
+    for zone in zones:
+        poly = parse_zone_polygon(zone["polygon"], img_w, img_h)
+        cv2.fillPoly(zone_mask, [poly], 255)
+
+    filtered = []
+    for d in detections:
+        cx = int((d["bbox"][0] + d["bbox"][2]) / 2)
+        cy = int((d["bbox"][1] + d["bbox"][3]) / 2)
+        cx = max(0, min(cx, img_w - 1))
+        cy = max(0, min(cy, img_h - 1))
+        if zone_mask[cy, cx] == 0:
+            filtered.append(d)
+
+    return filtered
+
+
 def detect_setup_from_filename(filename):
     """Detect camera setup from filename pattern.
 
@@ -653,8 +685,8 @@ Examples:
   # Generate a default config file to customise
   python final_inference.py --generate-config config/inference.yaml
 
-  # Run with anonymisation and visualisation
-  python final_inference.py --input-dir images/ --output-dir output/ --anonymise --vis
+  # Run with bounding box visualisation overlay
+  python final_inference.py --input-dir images/ --output-dir output/ --vis
         """,
     )
     parser.add_argument("--config", type=str, default=None,
@@ -663,8 +695,8 @@ Examples:
                         help="Generate a default config file at this path and exit.")
     parser.add_argument("--input-dir", type=str)
     parser.add_argument("--output-dir", type=str, default="output")
-    parser.add_argument("--anonymise", action="store_true")
-    parser.add_argument("--vis", action="store_true")
+    parser.add_argument("--vis", action="store_true",
+                        help="Save additional images with bounding box overlays.")
     parser.add_argument("--max-images", type=int, default=None)
     parser.add_argument("--no-metadata", action="store_true",
                         help="Disable timestamp overlay on output images.")
@@ -706,9 +738,8 @@ Examples:
     if args.max_images:
         images = images[:args.max_images]
 
-    if args.anonymise:
-        anon_dir = Path(args.output_dir) / "anonymised"
-        anon_dir.mkdir(parents=True, exist_ok=True)
+    anon_dir = Path(args.output_dir) / "anonymised"
+    anon_dir.mkdir(parents=True, exist_ok=True)
 
     if args.vis:
         vis_dir = Path(args.output_dir) / "vis"
@@ -724,6 +755,7 @@ Examples:
         img = cv2.imread(str(img_path))
         h, w = img.shape[:2]
 
+        zones = []
         if zone_config:
             setup = detect_setup_from_filename(img_path.name)
             zones = zone_config.get(setup, {}).get("zones", []) if setup else []
@@ -733,6 +765,7 @@ Examples:
             img, loaded_models, class_names, cfg.get("wbf", {}))
 
         dets = clip_face_to_person(dets, cfg.get("face_clipping", {}), class_names)
+        dets = filter_detections_in_zones(dets, zones, w, h)
 
         lines = []
         for d in dets:
@@ -743,20 +776,18 @@ Examples:
         with open(labels_dir / (img_path.stem + ".txt"), "w") as f:
             f.write("\n".join(lines) + "\n" if lines else "")
 
-        if args.anonymise:
-            anon_img = img.copy()
+        anon_img = img.copy()
+        anon_img = anonymise_image(
+            anon_img, dets, class_names, cfg.get("anonymisation", {}))
 
-            anon_img = anonymise_image(
-                anon_img, dets, class_names, cfg.get("anonymisation", {}))
+        if show_metadata:
+            overlay_metadata(anon_img, img_path.name)
 
-            if show_metadata:
-                overlay_metadata(anon_img, img_path.name)
-
-            cv2.imwrite(str(anon_dir / img_path.name), anon_img,
-                        [cv2.IMWRITE_JPEG_QUALITY, 95])
+        cv2.imwrite(str(anon_dir / img_path.name), anon_img,
+                    [cv2.IMWRITE_JPEG_QUALITY, 95])
 
         if args.vis:
-            vis_img = img.copy()
+            vis_img = anon_img.copy()
             for d in dets:
                 cls = d["class_id"]
                 x1, y1, x2, y2 = [int(v) for v in d["bbox"]]
@@ -765,9 +796,6 @@ Examples:
                 label = class_names[cls] if cls < len(class_names) else str(cls)
                 cv2.putText(vis_img, f'{label} {d["conf"]:.2f}',
                             (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.4, col, 1)
-
-            if show_metadata:
-                overlay_metadata(vis_img, img_path.name)
 
             cv2.imwrite(str(vis_dir / img_path.name), vis_img,
                         [cv2.IMWRITE_JPEG_QUALITY, 95])
@@ -783,8 +811,7 @@ Examples:
     for cls in class_names:
         print(f"    {cls:20s}: {stats[cls]:6d} ({stats[cls] / max(n_imgs, 1):.1f}/img)")
     print(f"  Labels:  {labels_dir}")
-    if args.anonymise:
-        print(f"  Anonymised: {anon_dir}")
+    print(f"  Anonymised: {anon_dir}")
     if args.vis:
         print(f"  Visualisations: {vis_dir}")
     print("=" * 60)
